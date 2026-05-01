@@ -1,5 +1,6 @@
 import { Link } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,8 +10,10 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  type ViewStyle,
   View,
 } from "react-native";
+import { getFavoritePokemon } from "@/src/lib/favorites";
 import { getPokemonList } from "@/src/lib/pokeapi";
 import type { PokemonListItem } from "@/src/types/pokemon";
 
@@ -28,11 +31,21 @@ function formatLoadError(message: string) {
 function PokemonListCard({
   item,
   index,
+  isFavorite,
 }: {
   item: PokemonListItem;
   index: number;
+  isFavorite: boolean;
 }) {
   const [hasImageError, setHasImageError] = useState(false);
+  const cardStyle = StyleSheet.flatten([
+    styles.card,
+    isFavorite ? styles.favoriteCard : null,
+  ]) as ViewStyle;
+  const imageWrapStyle = StyleSheet.flatten([
+    styles.imageWrap,
+    isFavorite ? styles.favoriteImageWrap : null,
+  ]) as ViewStyle;
 
   return (
     <Link
@@ -42,9 +55,15 @@ function PokemonListCard({
       }}
       asChild
     >
-      <Pressable style={styles.card}>
+      <Pressable style={cardStyle}>
+        {isFavorite ? (
+          <View style={styles.favoriteBadge}>
+            <Text style={styles.favoriteBadgeLabel}>{"\u2605"}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.cardContent}>
-          <View style={styles.imageWrap}>
+          <View style={imageWrapStyle}>
             {hasImageError ? (
               <Text style={styles.imageFallbackLabel}>
                 {formatPokemonName(item.name).slice(0, 1)}
@@ -63,6 +82,9 @@ function PokemonListCard({
               #{String(index + 1).padStart(3, "0")}
             </Text>
             <Text style={styles.cardTitle}>{formatPokemonName(item.name)}</Text>
+            {isFavorite ? (
+              <Text style={styles.favoriteHint}>Favorite Pokemon</Text>
+            ) : null}
           </View>
         </View>
 
@@ -74,6 +96,9 @@ function PokemonListCard({
 
 export default function PokedexScreen() {
   const [pokemon, setPokemon] = useState<PokemonListItem[]>([]);
+  const [favoritePokemonNames, setFavoritePokemonNames] = useState<string[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +106,7 @@ export default function PokedexScreen() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
   const normalizedSearchQuery = debouncedSearchQuery.trim().toLowerCase();
+  const favoritePokemonNameSet = new Set(favoritePokemonNames);
   const filteredPokemon =
     normalizedSearchQuery.length > 0
       ? pokemon.filter((item) =>
@@ -88,34 +114,51 @@ export default function PokedexScreen() {
         )
       : pokemon;
 
-  async function loadPokemon(isPullToRefresh = false) {
-    if (isPullToRefresh) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
+  const syncFavorites = useCallback(async () => {
+    const favorites = await getFavoritePokemon();
+    setFavoritePokemonNames(favorites.map((favorite) => favorite.name));
+  }, []);
 
-    setError(null);
+  const loadPokemon = useCallback(
+    async (isPullToRefresh = false) => {
+      if (isPullToRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
 
-    try {
-      const pokemonList = await getPokemonList(LOCAL_POKEMON_LIMIT, 0);
-      setPokemon(pokemonList);
-    } catch (caughtError) {
-      const message =
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Something went wrong while loading Pokemon.";
+      setError(null);
 
-      setError(message);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }
+      try {
+        const [pokemonList] = await Promise.all([
+          getPokemonList(LOCAL_POKEMON_LIMIT, 0),
+          syncFavorites(),
+        ]);
+        setPokemon(pokemonList);
+      } catch (caughtError) {
+        const message =
+          caughtError instanceof Error
+            ? caughtError.message
+            : "Something went wrong while loading Pokemon.";
+
+        setError(message);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [syncFavorites]
+  );
 
   useEffect(() => {
     void loadPokemon();
-  }, []);
+  }, [loadPokemon]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void syncFavorites();
+    }, [syncFavorites])
+  );
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -160,7 +203,13 @@ export default function PokedexScreen() {
         />
       }
       keyboardShouldPersistTaps="handled"
-      renderItem={({ item, index }) => <PokemonListCard item={item} index={index} />}
+      renderItem={({ item, index }) => (
+        <PokemonListCard
+          item={item}
+          index={index}
+          isFavorite={favoritePokemonNameSet.has(item.name)}
+        />
+      )}
       ListHeaderComponent={
         <View style={styles.header}>
           <Text style={styles.title}>Pokedex</Text>
@@ -365,6 +414,7 @@ const styles = StyleSheet.create({
     color: "#991B1B",
   },
   card: {
+    position: "relative",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -375,6 +425,35 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#FED7AA",
+  },
+  favoriteCard: {
+    borderColor: "#FACC15",
+    backgroundColor: "#FFFBEA",
+    shadowColor: "#F59E0B",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  favoriteBadge: {
+    position: "absolute",
+    top: 10,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: "#FACC15",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1,
+  },
+  favoriteBadgeLabel: {
+    fontSize: 13,
+    fontWeight: "900",
+    color: "#7C2D12",
   },
   cardContent: {
     flexDirection: "row",
@@ -390,6 +469,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FFF7ED",
     overflow: "hidden",
+  },
+  favoriteImageWrap: {
+    backgroundColor: "#FEF3C7",
   },
   cardImage: {
     width: 48,
@@ -410,6 +492,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
     color: "#7C2D12",
+  },
+  favoriteHint: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#B45309",
   },
   cardAction: {
     fontSize: 14,

@@ -107,3 +107,11 @@ export type PokemonInsight = {
     value: number;
   };
 };
+
+export type FavoritePokemon = {
+  id: number;
+  name: string;
+  imageUrl: string;
+  types: string[];
+  addedAt: string;
+};

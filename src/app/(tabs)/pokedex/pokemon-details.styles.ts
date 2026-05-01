@@ -70,6 +70,28 @@ export const pokemonDetailsStyles = StyleSheet.create({
     fontWeight: "900",
     color: pokemonDetailsTheme.textOnDark,
   },
+  favoriteButton: {
+    alignSelf: "flex-start",
+    marginTop: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  favoriteButtonActive: {
+    backgroundColor: "#F59E0B",
+    borderColor: "#FCD34D",
+  },
+  favoriteButtonLabel: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: pokemonDetailsTheme.textOnDark,
+    lineHeight: 26,
+  },
   typeRow: {
     flexDirection: "row",
     flexWrap: "wrap",

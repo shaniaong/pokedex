@@ -1,4 +1,5 @@
 import { Link, Stack, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,6 +10,10 @@ import {
   Text,
   View,
 } from "react-native";
+import {
+  isFavoritePokemon,
+  toggleFavoritePokemon,
+} from "@/src/lib/favorites";
 import { getPokemonDetails } from "@/src/lib/pokeapi";
 import type { PokemonDetail } from "@/src/types/pokemon";
 import { pokemonDetailsStyles as styles } from "./pokemon-details.styles";
@@ -39,6 +44,8 @@ export default function PokemonDetailsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasArtworkError, setHasArtworkError] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
 
   const loadPokemonDetails = useCallback(async (slug: string | undefined) => {
     if (!slug) {
@@ -66,9 +73,40 @@ export default function PokemonDetailsScreen() {
     }
   }, []);
 
+  const syncFavoriteStatus = useCallback(async (name: string | undefined) => {
+    if (!name) {
+      setIsFavorite(false);
+      return;
+    }
+
+    const favoriteStatus = await isFavoritePokemon(name);
+    setIsFavorite(favoriteStatus);
+  }, []);
+
+  async function handleFavoritePress() {
+    if (!details || isFavoriteLoading) {
+      return;
+    }
+
+    setIsFavoriteLoading(true);
+
+    try {
+      const nextFavoriteStatus = await toggleFavoritePokemon(details);
+      setIsFavorite(nextFavoriteStatus);
+    } finally {
+      setIsFavoriteLoading(false);
+    }
+  }
+
   useEffect(() => {
     void loadPokemonDetails(pokemonSlug);
   }, [loadPokemonDetails, pokemonSlug]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void syncFavoriteStatus(pokemonSlug);
+    }, [pokemonSlug, syncFavoriteStatus])
+  );
 
   const screenTitle = details
     ? formatPokemonName(details.name)
@@ -120,6 +158,25 @@ export default function PokemonDetailsScreen() {
             <Text style={styles.pokemonName}>
               {formatPokemonName(details.name)}
             </Text>
+            <Pressable
+              onPress={() => void handleFavoritePress()}
+              style={[
+                styles.favoriteButton,
+                isFavorite ? styles.favoriteButtonActive : null,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isFavorite ? "Remove from favorites" : "Add to favorites"
+              }
+            >
+              <Text style={styles.favoriteButtonLabel}>
+                {isFavoriteLoading
+                  ? "..."
+                  : isFavorite
+                    ? "♥"
+                    : "♡"}
+              </Text>
+            </Pressable>
           </View>
 
           <View style={styles.typeRow}>
