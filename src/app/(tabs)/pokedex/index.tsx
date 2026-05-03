@@ -1,9 +1,5 @@
 import { Link } from "expo-router";
-<<<<<<< HEAD
 import { useEffect, useRef, useState } from "react";
-=======
-import { useEffect, useState } from "react";
->>>>>>> faaf2751b8751cac3d126ac8fbe5f8e318bacaca
 import {
   ActivityIndicator,
   FlatList,
@@ -30,10 +26,7 @@ export default function PokedexScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMorePokemon, setHasMorePokemon] = useState(true);
   const [error, setError] = useState<string | null>(null);
-<<<<<<< HEAD
   const isLoadingMoreRef = useRef(false);
-=======
->>>>>>> faaf2751b8751cac3d126ac8fbe5f8e318bacaca
 
   async function loadPokemon(isPullToRefresh = false) {
     if (isPullToRefresh) {
@@ -62,7 +55,6 @@ export default function PokedexScreen() {
   }
 
   async function loadMorePokemon() {
-<<<<<<< HEAD
     if (
       isLoading ||
       isRefreshing ||
@@ -74,12 +66,6 @@ export default function PokedexScreen() {
     }
 
     isLoadingMoreRef.current = true;
-=======
-    if (isLoading || isRefreshing || isLoadingMore || !hasMorePokemon) {
-      return;
-    }
-
->>>>>>> faaf2751b8751cac3d126ac8fbe5f8e318bacaca
     setIsLoadingMore(true);
 
     try {
@@ -95,10 +81,7 @@ export default function PokedexScreen() {
 
       setError(message);
     } finally {
-<<<<<<< HEAD
       isLoadingMoreRef.current = false;
-=======
->>>>>>> faaf2751b8751cac3d126ac8fbe5f8e318bacaca
       setIsLoadingMore(false);
     }
   }
@@ -116,11 +99,7 @@ export default function PokedexScreen() {
     );
   }
 
-<<<<<<< HEAD
   if (error && pokemon.length === 0) {
-=======
-  if (error) {
->>>>>>> faaf2751b8751cac3d126ac8fbe5f8e318bacaca
     return (
       <View style={styles.centeredState}>
         <Text style={styles.errorTitle}>Could not load Pokedex</Text>
@@ -148,7 +127,7 @@ export default function PokedexScreen() {
       onEndReached={() => loadMorePokemon()}
       onEndReachedThreshold={0.4}
       renderItem={({ item, index }) => (
-        <Link href={`/pokedex/${item.name}`} asChild>
+        <Link href={`./${item.name}`} asChild>
           <Pressable style={styles.card}>
             <View style={styles.cardContent}>
               <View style={styles.imageWrap}>
@@ -173,16 +152,10 @@ export default function PokedexScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Pokedex</Text>
           <Text style={styles.copy}>
-<<<<<<< HEAD
             Browse Pokemon from PokeAPI and tap any Pokemon to view its
             details. More load as you scroll.
           </Text>
           {error ? <Text style={styles.inlineError}>{error}</Text> : null}
-=======
-            Browse the first 30 Pokemon from PokeAPI and tap any one to open
-            its details screen.
-          </Text>
->>>>>>> faaf2751b8751cac3d126ac8fbe5f8e318bacaca
         </View>
       }
       ListFooterComponent={
@@ -252,15 +225,12 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: "#991B1B",
   },
-<<<<<<< HEAD
   inlineError: {
     marginTop: 12,
     fontSize: 14,
     lineHeight: 20,
     color: "#B91C1C",
   },
-=======
->>>>>>> faaf2751b8751cac3d126ac8fbe5f8e318bacaca
   footerLoader: {
     flexDirection: "row",
     justifyContent: "center",
